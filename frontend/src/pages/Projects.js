@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
 import { useAuth, can } from "@/context/AuthContext";
@@ -24,12 +24,15 @@ export default function Projects() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: "", description: "", client_id: "", service_id: "", priority: "Medium", status: "Not Started", due_date: "" });
 
-  const load = () => api.get("/projects").then((r) => setProjects(r.data)).catch(() => {});
+  const load = useCallback(() => {
+    api.get("/projects").then((r) => setProjects(r.data)).catch(() => {});
+  }, []);
+
   useEffect(() => {
     load();
     api.get("/clients").then((r) => setClients(r.data)).catch(() => {});
     api.get("/services").then((r) => setServices(r.data)).catch(() => {});
-  }, []);
+  }, [load]);
 
   const create = async () => {
     if (!form.name || !form.client_id) { toast.error("Name and client required"); return; }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { api } from "@/lib/api";
 import { useAuth, can } from "@/context/AuthContext";
 import { PageHeader, SectionCard, Loading } from "@/components/Common";
@@ -16,8 +16,13 @@ export default function Services() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: "", color: "#2563EB", description: "" });
 
-  const load = () => api.get("/services").then((r) => setServices(r.data)).catch(() => {});
-  useEffect(() => { load(); }, []);
+  const load = useCallback(() => {
+    api.get("/services").then((r) => setServices(r.data)).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const create = async () => {
     if (!form.name) { toast.error("Name required"); return; }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { api } from "@/lib/api";
 import { PageHeader, SectionCard, EmptyState, Loading } from "@/components/Common";
 import { Button } from "@/components/ui/button";
@@ -13,8 +13,12 @@ const ICONS = {
 
 export default function Notifications() {
   const [notes, setNotes] = useState(null);
-  const load = () => api.get("/notifications").then((r) => setNotes(r.data)).catch(() => {});
-  useEffect(() => { load(); }, []);
+  const load = useCallback(() => {
+    api.get("/notifications").then((r) => setNotes(r.data)).catch(() => {});
+  }, []);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const markRead = async (id) => { await api.post(`/notifications/${id}/read`); load(); };
   const markAll = async () => { await api.post("/notifications/read-all"); load(); };

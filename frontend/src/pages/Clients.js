@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
 import { useAuth, can } from "@/context/AuthContext";
@@ -21,8 +21,13 @@ export default function Clients() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: "", industry: "", logo: "🏢" });
 
-  const load = () => api.get("/clients").then((r) => setClients(r.data)).catch(() => {});
-  useEffect(() => { load(); }, []);
+  const load = useCallback(() => {
+    api.get("/clients").then((r) => setClients(r.data)).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const create = async () => {
     if (!form.name) { toast.error("Name required"); return; }

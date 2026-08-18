@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { api } from "@/lib/api";
 import { PageHeader, SectionCard, EmptyState, Loading } from "@/components/Common";
 import { UserAvatar } from "@/components/Badges";
@@ -22,8 +22,13 @@ export default function FilesPage() {
   const [typeFilter, setTypeFilter] = useState("all");
   const fileRef = useRef();
 
-  const load = () => api.get("/files").then((r) => setFiles(r.data)).catch(() => {});
-  useEffect(() => { load(); }, []);
+  const load = useCallback(() => {
+    api.get("/files").then((r) => setFiles(r.data)).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const onUpload = (e) => {
     const f = e.target.files?.[0]; if (!f) return;

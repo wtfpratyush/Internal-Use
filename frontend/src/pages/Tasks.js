@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { api } from "@/lib/api";
 import { useAuth, can } from "@/context/AuthContext";
 import { useUI } from "@/context/UIContext";
@@ -27,8 +27,14 @@ export default function Tasks() {
   const [selected, setSelected] = useState([]);
   const [bulkAssignee, setBulkAssignee] = useState("");
 
-  const load = () => api.get("/tasks").then((r) => setTasks(r.data)).catch(() => {});
-  useEffect(() => { load(); }, [dataVersion]);
+  const load = useCallback(() => {
+    api.get("/tasks").then((r) => setTasks(r.data)).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load, dataVersion]);
+
   useEffect(() => {
     api.get("/users").then((r) => setUsers(r.data)).catch(() => {});
     api.get("/clients").then((r) => setClients(r.data)).catch(() => {});

@@ -27,8 +27,8 @@ export default function Layout({ children }) {
   const items = NAV_ITEMS.filter((n) => n.roles.includes(user?.role));
   const itemMap = Object.fromEntries(items.map((i) => [i.key, i]));
 
-  const loadUnread = () => api.get("/notifications").then((r) => setUnread(r.data.filter((n) => !n.read).length)).catch(() => {});
   useEffect(() => {
+    const loadUnread = () => api.get("/notifications").then((r) => setUnread(r.data.filter((n) => !n.read).length)).catch(() => {});
     loadUnread();
     const i = setInterval(loadUnread, 20000);
     return () => clearInterval(i);
