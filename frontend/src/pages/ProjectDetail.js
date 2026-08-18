@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "@/lib/api";
 import { useAuth, can } from "@/context/AuthContext";
@@ -22,8 +22,13 @@ export default function ProjectDetail() {
   const [createOpen, setCreateOpen] = useState(false);
   const [view, setView] = useState("list");
 
-  const load = () => api.get(`/projects/${id}`).then((r) => setData(r.data)).catch(() => {});
-  useEffect(() => { load(); }, [id, dataVersion]);
+  const load = useCallback(() => {
+    api.get(`/projects/${id}`).then((r) => setData(r.data)).catch(() => {});
+  }, [id]);
+
+  useEffect(() => {
+    load();
+  }, [load, dataVersion]);
 
   if (!data) return <Loading />;
   const p = data.project;
