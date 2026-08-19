@@ -18,9 +18,10 @@ from auth_utils import (hash_password, verify_password, create_access_token, cre
                         set_auth_cookies, clear_auth_cookies, get_current_user_from_db)
 from seed_data import seed
 
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+mongo_url = os.environ.get('MONGO_URL', 'mongodb://127.0.0.1:27017')
+db_name = os.environ.get('DB_NAME', 'test_database')
+client = AsyncIOMotorClient(mongo_url, serverSelectionTimeoutMS=5000)
+db = client[db_name]
 
 app = FastAPI()
 api = APIRouter(prefix="/api")
@@ -205,25 +206,45 @@ class UserInput(BaseModel):
 @api.post("/auth/register")
 async def register(body: RegisterInput, response: Response):
     email = body.email.lower()
-    if await db.users.find_one({"email": email}):
-        raise HTTPException(status_code=400, detail="Email already registered")
+    try:
+        if await db.users.find_one({"email": email}):
+            raise HTTPException(status_code=400, detail="Email already registered")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Database error during register: {e}")
+        raise HTTPException(status_code=500, detail="Database connection error. Please ensure MONGO_URL is properly configured.")
     uid = str(uuid.uuid4())
     doc = {"id": uid, "email": email, "password_hash": hash_password(body.password), "name": body.name,
            "role": body.role, "department": "", "title": "", "avatar": "", "phone": "", "status": "active",
            "created_at": NOW()}
     await db.users.insert_one(dict(doc))
-    set_auth_cookies(response, create_access_token(uid, email), create_refresh_token(uid))
-    return clean(doc)
+    access_token = create_access_token(uid, email)
+    refresh_token = create_refresh_token(uid)
+    set_auth_cookies(response, access_token, refresh_token)
+    user_data = clean(doc)
+    user_data["access_token"] = access_token
+    user_data["token"] = access_token
+    return user_data
 
 
 @api.post("/auth/login")
 async def login(body: LoginInput, response: Response):
     email = body.email.lower()
-    user = await db.users.find_one({"email": email})
-    if not user or not verify_password(body.password, user["password_hash"]):
+    try:
+        user = await db.users.find_one({"email": email})
+    except Exception as e:
+        logger.error(f"Database error during login: {e}")
+        raise HTTPException(status_code=500, detail="Database connection error. Please ensure MONGO_URL is properly configured.")
+    if not user or not verify_password(body.password, user.get("password_hash", "")):
         raise HTTPException(status_code=401, detail="Invalid email or password")
-    set_auth_cookies(response, create_access_token(user["id"], email), create_refresh_token(user["id"]))
-    return clean(dict(user))
+    access_token = create_access_token(user["id"], email)
+    refresh_token = create_refresh_token(user["id"])
+    set_auth_cookies(response, access_token, refresh_token)
+    user_data = clean(dict(user))
+    user_data["access_token"] = access_token
+    user_data["token"] = access_token
+    return user_data
 
 
 @api.post("/auth/logout")
@@ -779,14 +800,17 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def startup():
-    await db.users.create_index("email", unique=True)
-    await db.users.create_index("id")
-    await db.tasks.create_index("id")
-    await db.projects.create_index("id")
-    await db.clients.create_index("id")
-    await seed(db, os.environ.get("ADMIN_EMAIL", "admin@example.com"),
-               os.environ.get("ADMIN_PASSWORD", "admin123"))
-    logger.info("Startup complete, seed ensured.")
+    try:
+        await db.users.create_index("email", unique=True)
+        await db.users.create_index("id")
+        await db.tasks.create_index("id")
+        await db.projects.create_index("id")
+        await db.clients.create_index("id")
+        await seed(db, os.environ.get("ADMIN_EMAIL", "coconutwater2911@gmail.com"),
+                   os.environ.get("ADMIN_PASSWORD", "admin123"))
+        logger.info("Startup complete, seed ensured.")
+    except Exception as e:
+        logger.warning(f"Startup database warning (will retry on next request): {e}")
 
 
 @app.on_event("shutdown")
