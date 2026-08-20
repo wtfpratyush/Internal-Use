@@ -1,3 +1,4 @@
+# pyrefly: ignore [missing-import]
 from dotenv import load_dotenv
 from pathlib import Path
 import os
@@ -9,9 +10,12 @@ import logging
 from datetime import datetime, timezone
 from typing import List, Optional
 
+# pyrefly: ignore [missing-import]
 from fastapi import FastAPI, APIRouter, Request, Response, HTTPException, Depends
+# pyrefly: ignore [missing-import]
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
+# pyrefly: ignore [missing-import]
 from pydantic import BaseModel, EmailStr, Field
 
 from auth_utils import (hash_password, verify_password, create_access_token, create_refresh_token,
