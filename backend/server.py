@@ -18,10 +18,18 @@ from auth_utils import (hash_password, verify_password, create_access_token, cre
                         set_auth_cookies, clear_auth_cookies, get_current_user_from_db)
 from seed_data import seed
 
+import certifi
+
 mongo_url = os.environ.get('MONGO_URL', 'mongodb://127.0.0.1:27017')
 db_name = os.environ.get('DB_NAME', 'test_database')
-client = AsyncIOMotorClient(mongo_url, serverSelectionTimeoutMS=5000)
+
+motor_kwargs = {"serverSelectionTimeoutMS": 5000}
+if "mongodb+srv://" in mongo_url or "ssl=true" in mongo_url.lower() or "tls=true" in mongo_url.lower():
+    motor_kwargs["tlsCAFile"] = certifi.where()
+
+client = AsyncIOMotorClient(mongo_url, **motor_kwargs)
 db = client[db_name]
+
 
 app = FastAPI()
 api = APIRouter(prefix="/api")
